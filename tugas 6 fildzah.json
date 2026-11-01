@@ -1,0 +1,204 @@
+{
+  "name": "tugas 6 fildzah",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "serviceAccount",
+        "filters": {}
+      },
+      "id": "265f2210-d190-4338-bddc-b1ac920ba0b2",
+      "name": "Gmail Trigger (Email Baru)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        -16
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "pbxLTmlKXijgbgrw",
+          "name": "Google Service Account account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ec9c4bcb-fd84-46e8-a11a-8d89577e6499",
+      "name": "Switch (Allowlist Check)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -192,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "3c6cb41d-21fc-4d55-9b14-c7b3dd0e7bba",
+      "name": "AI Analisis Risiko",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponse = $input.item.json.output || \"\"; \nconst scoreMatch = aiResponse.match(/FINAL_SCORE:\\s*(\\d+)/);\nlet riskScore = 0;\nif (scoreMatch && scoreMatch[1]) {\n    riskScore = parseInt(scoreMatch[1], 10);\n}\nreturn { json: { ...$input.item.json, risk_score: riskScore } };"
+      },
+      "id": "07e22d28-f195-4e8d-9375-188015aafc85",
+      "name": "Code (Ekstraksi Skor)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.risk_score }}",
+              "operation": "larger",
+              "value2": 6
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "b319e82c-9e0f-4503-ac8a-50c234ff4ffa",
+      "name": "If Skor > 6",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ca085202-149d-45a2-95b9-a7ad0d5e604d",
+      "name": "Gmail: Label Phishing",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -192
+      ],
+      "webhookId": "5bc4b61a-c35d-4890-b72b-bdda115c640b"
+    },
+    {
+      "parameters": {
+        "chatId": "7427145171",
+        "text": "=⚠️ Tinjauan Diperlukan!\nEmail dari: {{ $json.from.value.address }}\nSkor Risiko: {{ $json.risk_score }}/10",
+        "additionalFields": {}
+      },
+      "id": "afe9a794-0174-47b2-aa89-690898a81a9b",
+      "name": "Telegram: Notifikasi",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -32
+      ],
+      "webhookId": "4e85d07f-39e6-494d-910a-c11844e92885",
+      "credentials": {
+        "telegramApi": {
+          "id": "HPJF2ohoCy20CtJa",
+          "name": "Telegram account 9"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger (Email Baru)": {
+      "main": [
+        [
+          {
+            "node": "Switch (Allowlist Check)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analisis Risiko": {
+      "main": [
+        [
+          {
+            "node": "Code (Ekstraksi Skor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Ekstraksi Skor)": {
+      "main": [
+        [
+          {
+            "node": "If Skor > 6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Skor > 6": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Label Phishing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Notifikasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0a60553e-c7d0-410f-857b-f61eac7b0c8e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "lHONR9KMsW65mtV6",
+  "tags": []
+}
